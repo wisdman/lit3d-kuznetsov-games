@@ -1,0 +1,7 @@
+# github.com/sstallion/go-hid v0.13.2
+## explicit; go 1.17
+github.com/sstallion/go-hid
+# golang.org/x/sys v0.5.0
+## explicit; go 1.17
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/windows
