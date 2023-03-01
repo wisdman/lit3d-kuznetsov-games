@@ -6,6 +6,9 @@ lib:
 firmware:
 	cd lit3d-kuznetsov-games; make
 
+write:
+	st-flash write ./build/lit3d-kuznetsov-games.bin 0x8000000
+
 clean:
 	rm -rf build/*
 

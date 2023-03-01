@@ -1,6 +1,6 @@
 #include <windows.h>
 
-void OnProcessAttach(HINSTANCE, DWORD, LPVOID);
+void OnProcessAttach();
 
 BOOL WINAPI DllMain(
     HINSTANCE _hinstDLL,  // handle to DLL module

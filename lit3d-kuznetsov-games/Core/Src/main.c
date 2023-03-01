@@ -46,10 +46,12 @@ TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 extern USBD_HandleTypeDef hUsbDeviceFS;
-uint8_t dataToSend[5];
-uint8_t cnt = 0;
+uint8_t dataToSend[6];
+
 uint8_t morzeBtn_state = 0;
-int16_t encoder_cnt = 0;
+
+uint16_t encoder_cnt = 0;
+int32_t encoder_prev = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -300,16 +302,36 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+#define ONE_PERIOD 65536
+#define HALF_PERIOD 32768
+
+int32_t unwrap_encoder_diff(uint16_t in, int32_t * prev)
+{
+  int32_t c32 = (int32_t)in - HALF_PERIOD;    //remove half period to determine (+/-) sign of the wrap
+  int32_t diff = (c32-*prev);  //core concept: prev + (current - prev) = current
+
+  //wrap difference from -HALF_PERIOD to HALF_PERIOD. modulo prevents differences after the wrap from having an incorrect result
+  int32_t mod_diff = ((diff + HALF_PERIOD) % ONE_PERIOD) - HALF_PERIOD;
+  if(diff < -HALF_PERIOD)
+      mod_diff += ONE_PERIOD;  //account for mod of negative number behavior in C
+
+  *prev = *prev + mod_diff;
+
+  return mod_diff;
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim2) {
-  // HAL_GPIO_TogglePin(GPIOC, LED_Pin);
-  // cnt++;
+  //__HAL_TIM_SET_COUNTER(&htim3, 0)
+  // uint16_t in = __HAL_TIM_GET_COUNTER(&htim3);
+  int32_t diff = unwrap_encoder_diff(encoder_cnt, &encoder_prev);
+
   dataToSend[0] = 1;
-  dataToSend[1] = 0;
-  dataToSend[2] = morzeBtn_state;
-  dataToSend[3] = (encoder_cnt >> 8) & 0xFF; 
-  dataToSend[4] = encoder_cnt & 0xFF;
-  USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, dataToSend, 5);
-  // if (cnt>=224) cnt = 0;
+  dataToSend[1] = morzeBtn_state;
+  dataToSend[2] = (diff >> 24) & 0xFF; 
+  dataToSend[3] = (diff >> 16) & 0xFF; 
+  dataToSend[4] = (diff >> 8) & 0xFF; 
+  dataToSend[5] = diff & 0xFF;
+  USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, dataToSend, 6);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
